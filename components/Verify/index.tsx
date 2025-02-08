@@ -1,3 +1,4 @@
+// File: /components/Verify/index.tsx
 "use client";
 import {
   MiniKit,
@@ -8,72 +9,73 @@ import {
 } from "@worldcoin/minikit-js";
 import { useCallback, useState } from "react";
 
-export type VerifyCommandInput = {
-  action: string;
-  signal?: string;
-  verification_level?: VerificationLevel; // Default: Orb
-};
-
-const verifyPayload: VerifyCommandInput = {
-  action: "test-action", // This is your action ID from the Developer Portal
-  signal: "",
-  verification_level: VerificationLevel.Orb, // Orb | Device
-};
-
-export const VerifyBlock = () => {
+export function VerifyBlock({
+  onVerifySuccess,
+}: {
+  onVerifySuccess?: () => void;
+}) {
   const [handleVerifyResponse, setHandleVerifyResponse] = useState<
     MiniAppVerifyActionErrorPayload | IVerifyResponse | null
   >(null);
 
   const handleVerify = useCallback(async () => {
     if (!MiniKit.isInstalled()) {
-      console.warn("Tried to invoke 'verify', but MiniKit is not installed.");
+      console.warn("MiniKit not installed!");
       return null;
     }
 
+    // your existing verify payload
+    const verifyPayload = {
+      action: "verify",
+      signal: "verify",
+      verification_level: VerificationLevel.Device,
+    };
+
     const { finalPayload } = await MiniKit.commandsAsync.verify(verifyPayload);
 
-    // no need to verify if command errored
     if (finalPayload.status === "error") {
-      console.log("Command error");
-      console.log(finalPayload);
-
       setHandleVerifyResponse(finalPayload);
       return finalPayload;
     }
 
-    // Verify the proof in the backend
+    // Next: call your /api/verify
     const verifyResponse = await fetch(`/api/verify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        payload: finalPayload as ISuccessResult, // Parses only the fields we need to verify
+        payload: finalPayload as ISuccessResult,
         action: verifyPayload.action,
-        signal: verifyPayload.signal, // Optional
+        signal: verifyPayload.signal,
       }),
     });
 
-    // TODO: Handle Success!
     const verifyResponseJson = await verifyResponse.json();
+
+    setHandleVerifyResponse(verifyResponseJson);
 
     if (verifyResponseJson.status === 200) {
       console.log("Verification success!");
-      console.log(finalPayload);
+      // <-- trigger callback
+      if (onVerifySuccess) onVerifySuccess();
     }
 
-    setHandleVerifyResponse(verifyResponseJson);
     return verifyResponseJson;
-  }, []);
+  }, [onVerifySuccess]);
 
   return (
-    <div>
-      <h1>Verify Block</h1>
-      <button className="bg-green-500 p-4" onClick={handleVerify}>
-        Test Verify
+    <div className="flex flex-col items-center border p-4 rounded gap-2">
+      <h1 className="font-bold text-lg">Verification</h1>
+      <button
+        className="bg-green-500 p-2 text-white rounded"
+        onClick={handleVerify}
+      >
+        Verify
       </button>
-      <span>{JSON.stringify(handleVerifyResponse, null, 2)}</span>
+      <pre className="text-xs mt-2">
+        {JSON.stringify(handleVerifyResponse, null, 2)}
+      </pre>
     </div>
   );
-};
+}
