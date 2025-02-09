@@ -24,7 +24,6 @@ export function VerifyBlock({
       return null;
     }
 
-    // your existing verify payload
     const verifyPayload = {
       action: "verify",
       signal: "verify",
@@ -41,9 +40,7 @@ export function VerifyBlock({
     // Next: call your /api/verify
     const verifyResponse = await fetch(`/api/verify`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         payload: finalPayload as ISuccessResult,
         action: verifyPayload.action,
@@ -52,30 +49,28 @@ export function VerifyBlock({
     });
 
     const verifyResponseJson = await verifyResponse.json();
-
     setHandleVerifyResponse(verifyResponseJson);
 
-    if (verifyResponseJson.status === 200) {
-      console.log("Verification success!");
-      // <-- trigger callback
-      if (onVerifySuccess) onVerifySuccess();
+    if (verifyResponseJson.status === 200 && onVerifySuccess) {
+      onVerifySuccess();
     }
-
     return verifyResponseJson;
   }, [onVerifySuccess]);
 
   return (
-    <div className="flex flex-col items-center border p-4 rounded gap-2">
-      <h1 className="font-bold text-lg">Verification</h1>
+    <div className="flex flex-col items-center text-center gap-2">
       <button
-        className="bg-green-500 p-2 text-white rounded"
+        className="bg-green-600 text-white font-semibold py-2 px-6 rounded shadow hover:bg-green-700 transition-colors"
         onClick={handleVerify}
       >
         Verify
       </button>
-      <pre className="text-xs mt-2">
-        {JSON.stringify(handleVerifyResponse, null, 2)}
-      </pre>
+      {/* If you do want to see debug info, keep it. Otherwise, remove or hide behind a toggle */}
+      {handleVerifyResponse && (
+        <pre className="text-xs bg-gray-50 border rounded p-2 mt-3 w-full max-w-xs">
+          {JSON.stringify(handleVerifyResponse, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }
